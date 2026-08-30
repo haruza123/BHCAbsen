@@ -387,6 +387,50 @@
     </div>
 
     <div class="settings-card">
+      <div class="settings-card-title">📍 Validasi Lokasi Absensi</div>
+      <p style="font-size:11px; color:var(--muted); margin-bottom:12px; line-height:1.6;">
+        Jika diaktifkan, karyawan hanya bisa absen jika perangkat kasir berada dalam radius yang ditentukan dari lokasi barber. GPS harus aktif.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="field-label">Aktifkan Validasi Lokasi</label>
+          <select class="field-input" id="set-lokasi-enabled">
+            <option value="false">Nonaktif</option>
+            <option value="true">Aktif</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Nama Lokasi</label>
+          <input class="field-input" type="text" id="set-lokasi-nama" value="BHC Professional" placeholder="Nama lokasi barber" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="field-label">Latitude</label>
+          <input class="field-input" type="text" id="set-lokasi-lat" value="-6.2030017" placeholder="-6.2030017" />
+        </div>
+        <div class="form-group">
+          <label class="field-label">Longitude</label>
+          <input class="field-input" type="text" id="set-lokasi-lng" value="106.7147163" placeholder="106.7147163" />
+        </div>
+        <div class="form-group">
+          <label class="field-label">Radius Maksimal (meter)</label>
+          <input class="field-input" type="number" id="set-lokasi-radius" value="100" min="10" max="1000" placeholder="100" />
+        </div>
+      </div>
+      <p style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.6;">
+        📌 Lokasi default: <b>Ruko Metro Permata I No.3B, Karang Mulya, Karang Tengah, Tangerang</b><br>
+        Koordinat: -6.2030017, 106.7147163 — Radius 100m artinya harus dalam jarak 100 meter dari titik lokasi.
+      </p>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-gold" onclick="saveLokasiSettings()">Simpan Lokasi</button>
+        <button class="btn btn-outline" onclick="testGeolocation()">🧪 Test Lokasi Saat Ini</button>
+      </div>
+      <div class="save-msg" id="save-msg-lokasi"></div>
+      <div id="test-lokasi-result" style="margin-top:10px;display:none;font-size:12px;padding:10px;border-radius:8px;background:var(--surface2);line-height:1.6;"></div>
+    </div>
+
+    <div class="settings-card">
       <div class="settings-card-title">🔐 Keamanan</div>
       <p style="font-size:13px; color:var(--muted); line-height:1.7;">
         Untuk mengubah password admin, buka <strong>Supabase Dashboard → Authentication → Users</strong> → klik user admin → Edit.

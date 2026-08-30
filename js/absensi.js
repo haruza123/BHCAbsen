@@ -90,18 +90,23 @@ function renderTable() {
     else if (r.status === 'sakit') { bc = 'b-blue'; bl = 'Sakit'; }
     else if (r.status === 'libur') { bc = 'b-gold'; bl = '🏖 Libur'; }
     
+    const locInfo = r.location_text
+      ? `<span style="color:var(--green);font-size:11px;" title="Lat: ${r.latitude}, Lng: ${r.longitude}">📍 ${escapeHtml(r.location_text)}</span>`
+      : '<span style="color:var(--muted);font-size:11px;">—</span>';
+
     return `<tr>
       <td><span class="id-chip">${escapeHtml(r.employee_id || '—')}</span></td>
       <td>${escapeHtml(r.employee_name || '—')}</td>
       <td><span class="badge b-gold">${escapeHtml(r.cabang || '—')}</span></td>
       <td>${time}</td>
       <td><span class="badge ${bc}">${bl}</span></td>
+      <td>${locInfo}</td>
       <td><span style="color: var(--muted); font-size:12px">${escapeHtml(r.notes || '—')}</span></td>
       <td><button class="btn btn-danger" onclick="deleteRow('${escapeHtml(r.id)}')">Hapus</button></td>
     </tr>`;
   }).join('');
-  
-  wrap.innerHTML = `<table><thead><tr><th>ID</th><th>Nama</th><th>Cabang</th><th>Waktu</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>${tbody}</tbody></table>`;
+
+  wrap.innerHTML = `<table><thead><tr><th>ID</th><th>Nama</th><th>Cabang</th><th>Waktu</th><th>Status</th><th>Lokasi</th><th>Notes</th><th></th></tr></thead><tbody>${tbody}</tbody></table>`;
   
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const pageInfo = document.getElementById('page-info');

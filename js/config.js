@@ -29,6 +29,41 @@ let cooldownTimerInterval = null;
 // Settings variables
 let fonnteToken = '', waTarget = '', waEnabled = false;
 
+// Location settings
+let lokasiEnabled = false;
+let lokasiLat = -6.2030017;
+let lokasiLng = 106.7147163;
+let lokasiRadius = 100; // meters
+let lokasiNama = 'BHC Professional';
+
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation tidak didukung di browser ini'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      err => {
+        if (err.code === 1) reject(new Error('Izin lokasi ditolak. Aktifkan GPS dan izinkan akses lokasi.'));
+        else if (err.code === 2) reject(new Error('Lokasi tidak tersedia. Pastikan GPS aktif.'));
+        else reject(new Error('Timeout mendapatkan lokasi. Coba lagi.'));
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+}
+
 // ---- UTILITIES: XSS & CSV SANITIZATION ----
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';

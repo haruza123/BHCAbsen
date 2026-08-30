@@ -398,15 +398,41 @@ async function processAbsenScanner(empId) {
         ? `Scan Masuk Kasir | Terlambat ${lateMinutes} mnt`
         : 'Scan Masuk Kasir';
 
+    let userLat = null, userLng = null, locationText = null;
+
+    if (lokasiEnabled) {
+      try {
+        showToast('📍 Mendapatkan lokasi...', 'warning');
+        const pos = await getCurrentPosition();
+        userLat = pos.lat;
+        userLng = pos.lng;
+        const distance = getDistanceMeters(userLat, userLng, lokasiLat, lokasiLng);
+        locationText = `${Math.round(distance)}m dari ${lokasiNama}`;
+
+        if (distance > lokasiRadius) {
+          showScanError(`📍 Lokasi terlalu jauh! ${Math.round(distance)}m dari ${lokasiNama} (maks ${lokasiRadius}m). Pastikan Anda berada di lokasi barber.`);
+          playAudioTone(false);
+          return;
+        }
+      } catch (locErr) {
+        showScanError('📍 ' + locErr.message);
+        playAudioTone(false);
+        return;
+      }
+    }
+
     const submitTime = new Date().toISOString();
     const payload = {
       employee_id: empId,
       employee_name: emp.name,
       cabang: selectedCabang,
       status: absenType,
-      notes: notesStr
+      notes: notesStr,
+      latitude: userLat,
+      longitude: userLng,
+      location_text: locationText
     };
-    
+
     const { error: insertErr } = await db.from('attendance').insert(payload);
     if (insertErr) throw insertErr;
     

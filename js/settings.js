@@ -24,7 +24,26 @@ async function loadSettings() {
   waEnabled = s.wa_enabled === 'true';
   jamMasuk = s.jam_masuk || '09:00';
   toleransiMenit = parseInt(s.toleransi_menit || '0');
-  
+
+  // Location settings
+  const setLokasiEnabled = document.getElementById('set-lokasi-enabled');
+  const setLokasiLat = document.getElementById('set-lokasi-lat');
+  const setLokasiLng = document.getElementById('set-lokasi-lng');
+  const setLokasiRadius = document.getElementById('set-lokasi-radius');
+  const setLokasiNama = document.getElementById('set-lokasi-nama');
+
+  if (setLokasiEnabled) setLokasiEnabled.value = s.lokasi_enabled || 'false';
+  if (setLokasiLat) setLokasiLat.value = s.lokasi_lat || '-6.2030017';
+  if (setLokasiLng) setLokasiLng.value = s.lokasi_lng || '106.7147163';
+  if (setLokasiRadius) setLokasiRadius.value = s.lokasi_radius || '100';
+  if (setLokasiNama) setLokasiNama.value = s.lokasi_nama || 'BHC Professional';
+
+  lokasiEnabled = s.lokasi_enabled === 'true';
+  lokasiLat = parseFloat(s.lokasi_lat || '-6.2030017');
+  lokasiLng = parseFloat(s.lokasi_lng || '106.7147163');
+  lokasiRadius = parseInt(s.lokasi_radius || '100');
+  lokasiNama = s.lokasi_nama || 'BHC Professional';
+
   loadDeletionLogs();
 }
 
@@ -46,6 +65,53 @@ async function saveSettings() {
   }
   msg.style.display = 'block';
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+
+async function saveLokasiSettings() {
+  const updates = [
+    { key: 'lokasi_enabled', value: document.getElementById('set-lokasi-enabled').value },
+    { key: 'lokasi_lat', value: document.getElementById('set-lokasi-lat').value.trim() },
+    { key: 'lokasi_lng', value: document.getElementById('set-lokasi-lng').value.trim() },
+    { key: 'lokasi_radius', value: document.getElementById('set-lokasi-radius').value.trim() },
+    { key: 'lokasi_nama', value: document.getElementById('set-lokasi-nama').value.trim() },
+  ];
+  const msg = document.getElementById('save-msg-lokasi');
+  const { error } = await db.from('settings').upsert(updates, { onConflict: 'key' });
+  if (error) {
+    msg.className = 'save-msg err'; msg.textContent = 'Gagal: ' + error.message;
+  } else {
+    msg.className = 'save-msg ok'; msg.textContent = '✓ Settings lokasi disimpan!';
+    loadSettings();
+  }
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+
+async function testGeolocation() {
+  const resultEl = document.getElementById('test-lokasi-result');
+  if (!resultEl) return;
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '⏳ Mendapatkan lokasi GPS...';
+
+  try {
+    const pos = await getCurrentPosition();
+    const targetLat = parseFloat(document.getElementById('set-lokasi-lat').value) || lokasiLat;
+    const targetLng = parseFloat(document.getElementById('set-lokasi-lng').value) || lokasiLng;
+    const radius = parseInt(document.getElementById('set-lokasi-radius').value) || lokasiRadius;
+    const distance = getDistanceMeters(pos.lat, pos.lng, targetLat, targetLng);
+    const isInRange = distance <= radius;
+
+    resultEl.innerHTML = `
+      <b>📍 Lokasi Anda:</b> ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)} (akurasi ~${Math.round(pos.accuracy)}m)<br>
+      <b>🎯 Lokasi Target:</b> ${targetLat.toFixed(6)}, ${targetLng.toFixed(6)}<br>
+      <b>📏 Jarak:</b> ${Math.round(distance)} meter (maks ${radius}m)<br>
+      <b>Status:</b> ${isInRange
+        ? '<span style="color:var(--green);font-weight:700;">✅ DALAM RADIUS — Absensi diizinkan</span>'
+        : '<span style="color:var(--red);font-weight:700;">❌ DI LUAR RADIUS — Absensi akan ditolak</span>'}
+    `;
+  } catch (err) {
+    resultEl.innerHTML = `<span style="color:var(--red);">❌ ${err.message}</span>`;
+  }
 }
 
 // ===== SINKRONISASI & PEMBERSIHAN DATA ORPHAN =====
