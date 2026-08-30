@@ -2,6 +2,50 @@
 // MODUL SCANNER KASIR & LIVE STATUS KEHADIRAN
 // ============================================================
 let scannerTransitioning = false;
+let cachedLocation = null;
+
+function updateLokasiStatusUI(status, message) {
+  const el = document.getElementById('scanner-lokasi-status');
+  if (!el) return;
+  if (!lokasiEnabled) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  if (status === 'ok') {
+    el.style.background = 'rgba(39,174,96,0.1)';
+    el.style.border = '1px solid rgba(39,174,96,0.3)';
+    el.style.color = 'var(--green)';
+  } else if (status === 'error') {
+    el.style.background = 'rgba(192,57,43,0.1)';
+    el.style.border = '1px solid rgba(192,57,43,0.3)';
+    el.style.color = 'var(--red)';
+  } else {
+    el.style.background = 'rgba(201,169,110,0.1)';
+    el.style.border = '1px solid rgba(201,169,110,0.3)';
+    el.style.color = 'var(--gold)';
+  }
+  el.innerHTML = message;
+}
+
+async function checkScannerLocation() {
+  if (!lokasiEnabled) return true;
+  updateLokasiStatusUI('loading', '📍 Memeriksa lokasi GPS...');
+  try {
+    const pos = await getCurrentPosition();
+    cachedLocation = pos;
+    const distance = getDistanceMeters(pos.lat, pos.lng, lokasiLat, lokasiLng);
+    const isInRange = distance <= lokasiRadius;
+    if (isInRange) {
+      updateLokasiStatusUI('ok', `📍 Lokasi OK — ${Math.round(distance)}m dari ${lokasiNama} (maks ${lokasiRadius}m)`);
+      return true;
+    } else {
+      updateLokasiStatusUI('error', `📍 Lokasi DITOLAK — ${Math.round(distance)}m dari ${lokasiNama} (maks ${lokasiRadius}m). Pindah ke lokasi barber!`);
+      return false;
+    }
+  } catch (err) {
+    cachedLocation = null;
+    updateLokasiStatusUI('error', `📍 ${err.message}`);
+    return false;
+  }
+}
 
 async function toggleScanner() {
   if (scannerTransitioning) return;
@@ -19,6 +63,15 @@ async function toggleScanner() {
   }
 
   btn.disabled = true;
+
+  if (!isScanning && lokasiEnabled) {
+    const locationOk = await checkScannerLocation();
+    if (!locationOk) {
+      btn.disabled = false;
+      scannerTransitioning = false;
+      return;
+    }
+  }
 
   if (isScanning) {
     try {
@@ -322,12 +375,19 @@ function showToast(message, type = 'success') {
   }, 4000);
 }
 
-function submitManualScan() {
+async function submitManualScan() {
   const input = document.getElementById('manual-emp-id');
   const empId = input.value.trim().toUpperCase();
   if (!empId) {
     alert('Masukkan ID Karyawan!');
     return;
+  }
+  if (lokasiEnabled) {
+    const locationOk = await checkScannerLocation();
+    if (!locationOk) {
+      alert('Absen ditolak! Lokasi GPS tidak sesuai. Pastikan Anda berada di lokasi barber.');
+      return;
+    }
   }
   triggerScannerCooldown(SCAN_COOLDOWN);
   processAbsenScanner(empId);
@@ -402,8 +462,7 @@ async function processAbsenScanner(empId) {
 
     if (lokasiEnabled) {
       try {
-        showToast('📍 Mendapatkan lokasi...', 'warning');
-        const pos = await getCurrentPosition();
+        const pos = cachedLocation || await getCurrentPosition();
         userLat = pos.lat;
         userLng = pos.lng;
         const distance = getDistanceMeters(userLat, userLng, lokasiLat, lokasiLng);
@@ -412,11 +471,14 @@ async function processAbsenScanner(empId) {
         if (distance > lokasiRadius) {
           showScanError(`📍 Lokasi terlalu jauh! ${Math.round(distance)}m dari ${lokasiNama} (maks ${lokasiRadius}m). Pastikan Anda berada di lokasi barber.`);
           playAudioTone(false);
+          updateLokasiStatusUI('error', `📍 Lokasi DITOLAK — ${Math.round(distance)}m dari ${lokasiNama}`);
           return;
         }
+        updateLokasiStatusUI('ok', `📍 Lokasi OK — ${Math.round(distance)}m dari ${lokasiNama}`);
       } catch (locErr) {
         showScanError('📍 ' + locErr.message);
         playAudioTone(false);
+        updateLokasiStatusUI('error', `📍 ${locErr.message}`);
         return;
       }
     }
